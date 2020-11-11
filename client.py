@@ -4,7 +4,8 @@ import sys
 import math
 import random
 from hashlib import sha256
-
+from Crypto.Cipher import AES
+from Crypto.Random import get_random_bytes
 
 def fastModular(b, e, n):
     if (n == 1):
@@ -31,6 +32,34 @@ def rsaVerify(message, key, signature):
         return True
     else:
         return False
+
+def split_str(seq, chunk):
+    lst = []
+    if chunk <= len(seq):
+        lst.extend([seq[:chunk]])
+        lst.extend(split_str(seq[chunk:], chunk))
+    return lst
+
+def xor_function(str1, str2):
+    temp_list = [chr(ord(a) ^ ord(b)) for a,b in zip(str1, str2)]
+    return "".join(temp_list)
+
+def cbcEncrypt(message):
+    fullCt = ""
+    tempCt = ""
+    key = get_random_bytes(16)
+    cipher = AES.new(key, AES.MODE_ECB)
+    iv = get_random_bytes(16)
+    ptList = split_str(message, 16)
+    for item in ptList:
+        if(item == 0):
+            tempCt = cipher.encrypt((xor_function(item, iv)), AES.block_size)
+        else:
+            tempCt = cipher.encrypt((xor_function(item, tempCt)), AES.block_size)
+        fullCt += tempCt
+        print(fullCt)
+
+# def cbcDecrypt():
 
 
 HOST = 'localhost'    # The remote host
@@ -132,13 +161,22 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 
         clientSharedSecret = fastModular(serverB, clientSecret, p)
         print('\nClient Shared Secret:', clientSharedSecret)
+        print(sys.getsizeof(clientSharedSecret))
 
         print("\n-----------------")
         print("Handshake Phase COMPLETE")
         print("-----------------\n")
 
         print("\n-----------------")
-        print("Data Exchange")
+        print("Data Exchange STARTED")
+        print("-----------------\n")
+
+        messageToBeSent = 'wXs7qb_ol5zo-O23x6HfUCXi94boxaMXBM78w4QqNDeA9Z44FbHJ89zaDUStFiRju0c3TH6ZO1bynJGujE06Bg'
+        print('Message To Be Sent to Server: ', messageToBeSent)  
+        cbcEncrypt(messageToBeSent)
+
+        print("\n-----------------")
+        print("Data Exchange COMPLETE")
         print("-----------------\n")
 
     except error as e:
