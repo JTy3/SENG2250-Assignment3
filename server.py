@@ -51,7 +51,6 @@ def rsaDecrypt(message, key):
     return decryptedMessage
 
 def rsaSignature(message, key):
-    print('Message to be signed:', message)
     messageInBytes = bytes(message)
     hash = int.from_bytes(sha256(messageInBytes).digest(), byteorder='big')
     signature = fastModular(hash, key[1], key[0])
@@ -82,13 +81,16 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 ((serverKeys[0][1]).to_bytes(2048, byteorder='little')))
 
             # Handshake phase - receive client id
-            clientIDc = rsaDecrypt(int.from_bytes(
-                conn.recv(1024), byteorder="little"), serverKeys[1])
+            clientIDc = rsaDecrypt(int.from_bytes(conn.recv(1024), byteorder="little"), serverKeys[1])
             if not clientIDc:
                 break
 
-            # Sending server ID to the client, not encrypted with RSA as the client doesn't have the public key
+            # Sending server ID to the client, signing the message and sending the signature for client to verify
             server_IDc = random.randrange(999999999)
-            session_ID = random.randrange(999999999)
+            conn.sendall(server_IDc.to_bytes(1024, byteorder='little'))
             conn.sendall(rsaSignature(server_IDc, serverKeys[1]).to_bytes(1024, byteorder='little'))
+
+            # Sending session ID to the client, signing the message and sending the signature for client to verify
+            session_ID = random.randrange(999999999)
+            conn.sendall(session_ID.to_bytes(1024, byteorder='little'))
             conn.sendall(rsaSignature(session_ID, serverKeys[1]).to_bytes(1024, byteorder='little'))
